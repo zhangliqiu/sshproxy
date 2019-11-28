@@ -165,7 +165,22 @@ class UNIX_SSHproxy(ParamikoClient):
         _print(com_str)
         self.shell_run(com_str, 5)
         _print("尝试打开代理进程",None,ifdebug,collect.try_open_proxy)
-        _print(self.out.decode(), None, ifdebug)
+        if(self.is_first_connect_proxy_server(self.out)):
+            _print('首次连接代理服务器')
+            
+            self.shell_run('yes')
+
+    def is_first_connect_proxy_server(self,out):
+        strout = ''
+        keys = ('to continue connecting','yes/no')
+        try:
+            strout = self.out.decode().lower()
+        except Exception:
+            pass
+        for key in keys:
+            if(strout.find(key) < 0):
+                return False
+        return True
 
     def open_proxy(self):
         re = self.proxy_check()
