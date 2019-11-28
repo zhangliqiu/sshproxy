@@ -10,34 +10,45 @@ def to_str(bytes_or_str):
         value += "\n%s" % hexstr
     return value
 
+def bytes_del_nodis(bys):     
+    lis = []
+    for tt in bys:
+        if(tt>127):
+            continue
+        lis.append(chr(tt))
+    
+    
+    return ''.join(lis)
 
 def str_to_lines(st):
-    strlines = {}
+    strlines = []
     line = ''
     i = 0
     for t in st:
         if(t != '\n'):
             line = line + t
         else:
-            strlines[i] = line
+            strlines.append(line)
             i = i+1
             line = ''
     return strlines
 
+def col_of_strs(strlines,col):
+    arrylines = str_to_lines(strlines)
+    colcumn = []
+    for te in arrylines:
+        tt = te.split()
+        colcumn.append(tt[col-1])
+    return colcumn
 
 def get_line(lines, start=0, howmuch=-1):
-    try:
-        lines = str_to_lines(lines)
-        strt = ''
-        i = 0
-        for t in lines:
-            if(t >= start):
-                strt = strt + lines[t] + '\n'
-                i = i + 1
-                if(howmuch > 0 and i == howmuch):
-                    break
-    except TypeError as e:
-        return lines
+    listlines = str_to_lines(lines)
+    lenlist = len(listlines)
+    end = lenlist + 1
+    if(howmuch > 0):
+        end =  start + howmuch
+    
+    strt = listlines[start:]
 
     return strt
 

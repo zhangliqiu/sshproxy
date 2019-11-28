@@ -29,25 +29,25 @@ def _print(mes, color=None, isdis=True, mes_collent=None, showtime=True):
         else:
             print_green(mes)
     
-    test_log = open('test_log', 'a')
-    
-    now = time.time()
-    if mes_collent == test_proxy_excellent:
-        test_log.write("%f %s\n" % (now,mes))
-    elif mes_collent == test_proxy_fail:
-        test_log.write("%f %s\n" % (now,mes))
-    elif mes_collent == test_proxy_good:
-        test_log.write("%f %s\n" % (now,mes))
-    elif mes_collent == test_proxy_normal:
-        test_log.write("%f %s\n" % (now,mes))
-    elif mes_collent == test_proxy_poor:
-        test_log.write("%f %s\n" % (now, mes))
-    elif mes_collent == test_proxy_over_time:
-        test_log.write("%f %s\n" % (now, mes))
-    
-    test_proxy_over_time
-    
-    test_log.close()
+    if(mes_collent != None):
+        test_log = open('test_log', 'a')
+        
+        now = time.time()
+        if mes_collent == test_proxy_excellent:
+            test_log.write("%f %s\n" % (now,mes))
+        elif mes_collent == test_proxy_fail:
+            test_log.write("%f %s\n" % (now,mes))
+        elif mes_collent == test_proxy_good:
+            test_log.write("%f %s\n" % (now,mes))
+        elif mes_collent == test_proxy_normal:
+            test_log.write("%f %s\n" % (now,mes))
+        elif mes_collent == test_proxy_poor:
+            test_log.write("%f %s\n" % (now, mes))
+        elif mes_collent == test_proxy_over_time:
+            test_log.write("%f %s\n" % (now, mes))     
+        
+        
+        test_log.close()
 
 
 def percent(a, b):

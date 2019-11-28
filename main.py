@@ -6,7 +6,7 @@ import sys
 import time
 import configparser
 import random
-from pack.SSHproxy import UNIX_SSHproxy
+from pack.SSHproxy import UNIX_SSHproxy,WIN_SSHproxy
 from pack._print import _print
 # 数据收集
 import pack.collect as collect
@@ -40,6 +40,7 @@ try:
         'config', 'open_proxy_cycle_range'))
     open_proxy_fail_cycle = int(config.get('config', 'open_proxy_fail_cycle'))
     open_proxy_fail_time = int(config.get('config', 'open_proxy_fail_time'))
+    client_os = config.get('user','os')
 except Exception as e:
     _print("配置文件不完整,或者格式错误%s" % e, 'red')
     exit()
@@ -65,13 +66,19 @@ os.system('clear')
 continous_failcount = 0
 
 while True:
-    client = UNIX_SSHproxy(configname)
+    print(client_os)
+    if(client_os == 'unix'):
+        client = UNIX_SSHproxy(configname)
+    elif(client_os == 'win'):
+        client = WIN_SSHproxy(configname)
     client.local_rsa_file = rsa_file
     client.Get_ping()
     if (client.permit_connect == True):
         _print("主机上线", 'green')
         client.connect()
         client.my_init()
+        # print(client.is_file_exist('.ssh'))
+        # exit()
         while True:
             try:
                 re = client.open_proxy()

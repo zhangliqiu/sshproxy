@@ -220,7 +220,7 @@ class ParamikoClient(object):
 
 
     def get_remote_rootdr(self):
-        print('获取根目录')
+        
         if(self.os == 'unix'):
             self.exec_command('pwd')
             self.remote_rootdir = self.out.decode().strip()
@@ -230,7 +230,7 @@ class ParamikoClient(object):
             strout = self.out.__str__()
             sta = strout.find('C:\\')
             end = strout.find('>')
-            self.remote_rootdir = strout[sta:end]
+            self.remote_rootdir = strout[sta:end].replace('\\\\','\\')
         return self.remote_rootdir
 
     def open_sftp(self):
