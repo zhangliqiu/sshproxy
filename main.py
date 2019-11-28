@@ -71,6 +71,7 @@ while True:
     if (client.permit_connect == True):
         _print("主机上线", 'green')
         client.connect()
+        client.my_init()
         while True:
             try:
                 re = client.open_proxy()
@@ -90,6 +91,6 @@ while True:
             _print("%s 秒后再次维护代理" % next_open_time)
             time.sleep(next_open_time)
 
-    _print("主机短线", 'red')
+    _print("主机断线", 'red')
     del client
     time.sleep(check_alive_cycle)

@@ -25,6 +25,7 @@ class ParamikoClient(object):
             self.sshport = int(self.config.get('user', 'port'))
             self.username = self.config.get('user', 'username')
             self.password = self.config.get('user', 'password')
+            self.os = self.config.get('user','os')
         except Exception as e:
             _print("配置文件不完整,或者格式错误%s" % e, 'red')
             exit()
@@ -48,9 +49,12 @@ class ParamikoClient(object):
         self.SSHClient.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
         self.remote_rootdir = '未连接'
-        self.localdir = os.path.dirname(__file__)
+        self.localdir = os.getcwd()
         self.out = None
         self.error = None
+    #获取远程根目录对 ftp 对上传下载比较重要,所有我放在了基类
+
+
 
     def Get_ping(self):
 
@@ -81,7 +85,7 @@ class ParamikoClient(object):
 
         if(self.Transport_status == 1):
             return True
-        try:
+       
             _print("正在连接    %s@%s  端口:%s" %
                    (self.username, self.hostname, self.sshport), None)
             ping = self.ping
@@ -90,29 +94,26 @@ class ParamikoClient(object):
             else:
                 _print("网络延迟: %.0f ms" % ping, 'green')
 
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.connect((self.hostname, self.sshport))
-                Transport = paramiko.Transport(sock)
-                Transport.connect(username=self.username,
-                                  password=self.password)
-                self.sock = sock
-            except socket.timeout:
-                _print("连接超时", 'red')
-                return False
-            except paramiko.SSHException:
-                _print("认证失败", 'red')
-                return False
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((self.hostname, self.sshport))
+            Transport = paramiko.Transport(sock)
+            Transport.connect(username=self.username,
+                                password=self.password)
+            self.sock = sock
+        except socket.timeout:
+            _print("连接超时", 'red')
+            return False
+        except paramiko.SSHException:
+            _print("认证失败", 'red')
+            return False
 
-            self.Transport = Transport
-            self.Transport_status = 1
-            _print("连接成功", 'green')
-            self.get_remote_rootdir()
-            return True
-        except paramiko.SSHException as e:
-            _print(e, 'red')
-            self.SSHClient.close()
-            raise e
+        self.Transport = Transport
+        self.Transport_status = 1
+        _print("连接成功", 'green')
+        return True
+    
+
 
     def open_sshclient(self):
         if(self.Transport_status == 0):
@@ -129,13 +130,13 @@ class ParamikoClient(object):
 
         old = float(time.time())
         try:
-            _print("执行: %s" % com_str, None, isdis and ifdebug)
+            _print("执行: %s" % com_str, None, isdis)
             stdin, stdout, stderror = self.SSHClient.exec_command(
                 com_str, -1, wait)
-            self.out = stdout.read()
+            self.out = stdout.read()            
             self.error = stderror.read()
 
-            if(isdis):
+            if(ifdebug):
                 self.print_result()
             if(time_cose == True):
                 now = float(time.time())
@@ -169,6 +170,7 @@ class ParamikoClient(object):
                 self.Chanel.invoke_shell()
                 self.Chanel_status = 1
                 _print('打开成功', 'green', ifdebug)
+                self.recv(0.3)
                 return True
             except paramiko.SSHException as e:
                 _print("channel打开失败", 'red')
@@ -189,6 +191,7 @@ class ParamikoClient(object):
         self.channel_send(sends)
 
         # 清除回显
+        
         recvtime = self.ping*2/1000  # 单位   s
         self.recv(recvtime, isdis)
         _print("输入 :%s " % command, None, ifdebug and isdis)
@@ -215,10 +218,19 @@ class ParamikoClient(object):
             print(re)
         return re
 
-    def get_remote_rootdir(self):
-        self.open_sshclient()
-        self.exec_command('pwd', False)
-        self.remote_rootdir = to_str(self.out).strip()
+
+    def get_remote_rootdr(self):
+        print('获取根目录')
+        if(self.os == 'unix'):
+            self.exec_command('pwd')
+            self.remote_rootdir = self.out.decode().strip()
+        elif(self.os == 'win'):
+            self.shell_run('\r',0.5,False)
+            
+            strout = self.out.__str__()
+            sta = strout.find('C:\\')
+            end = strout.find('>')
+            self.remote_rootdir = strout[sta:end]
         return self.remote_rootdir
 
     def open_sftp(self):
@@ -239,19 +251,6 @@ class ParamikoClient(object):
             re = self.sftp.listdir(path)
         return re
 
-    def is_file_exist(self, filename, isdis=False):
-        self.open_sshclient()
-
-        filename = self.remote_to_absolute(filename)
-
-        com_str = 'ls %s > /dev/null 2>&1;echo $?' % filename
-        self.exec_command(com_str, False)
-        result = int(self.out)
-        if(result == 0):
-            _print("%s 存在" % filename, 'green', ifdebug and isdis)
-            return True
-        _print("%s 不存在" % filename, 'red', ifdebug and isdis)
-        return False
 
     # put get 所用
     def local_to_absolute(self, filename):
@@ -260,50 +259,46 @@ class ParamikoClient(object):
         return filename
 
     def remote_to_absolute(self, filename):
-        self.get_remote_rootdir()
-        if(filename[0] != '/'):
-            filename = self.remote_rootdir + '/' + filename
+        
+        if(self.remote_rootdir[0] != '/'):
+            if(self.remote_rootdir[1] != ':'):
+                _print('远程根目录为: %s' % self.remote_rootdir,'red')
+                raise Exception
+        if(filename[0] == '/' or filename[1] == ':'):
+            return filename
+        filename = self.remote_rootdir + '/' + filename
         return filename
 
-    def mkdir(self, dirname, isdis=False):
-        self.open_sshclient()
-        newdir = self.remote_to_absolute(dirname)
 
-        if(self.is_file_exist(dirname)):
-
-            _print('%s 已存在无需新建' % newdir, None, ifdebug and isdis)
-            return True
-        com_str = 'mkdir %s' % dirname
-        self.exec_command(com_str, False)
-        re = self.is_file_exist(dirname)
-        if(re == True):
-            _print('%s 新建成功' % newdir, 'green', isdis and ifdebug)
-            return True
-        _print(' 新建%s失败,请查找原因' % newdir, 'red')
-        return False
 
     def sftp_change_dir(self, dirname):
         self.open_sftp()
         self.sftp.chdir(dirname)
 
-    def put(self, localpath, remotepath=None, isdis=False):
+    def put(self, localpath, remotepath=None, isdis=True):
         self.open_sftp()
 
         localpath = self.local_to_absolute(localpath)
         if(remotepath == None):
             remotepath = os.path.basename(localpath)
 
-        remotepath = self.remote_to_absolute(remotepath)
-        #print("put\nlocal:%s\nremote:%s" % (localpath, remotepath))
+        try:            
+            remotepath = self.remote_to_absolute(remotepath)
+        except Exception:
+            return False
+        #print("put\nlocal:%s\nremote:%s" % (localpath, remotepath))        
         if(isdis):
             self.sftp.put(localpath, remotepath, put_dis)
         else:
             self.sftp.put(localpath, remotepath)
 
-    def get(self, remotepath, localpath=None, isdis=False):
-        self.open_sftp()
 
-        remotepath = self.remote_to_absolute(remotepath)
+    def get(self, remotepath, localpath=None, isdis=True):
+        self.open_sftp()
+        try:    
+            remotepath = self.remote_to_absolute(remotepath)
+        except Exception:
+            return False  
         basename = os.path.basename(remotepath)
         if(localpath == None):
             localpath = self.localdir + '/' + basename
@@ -319,38 +314,7 @@ class ParamikoClient(object):
         else:
             self.sftp.get(remotepath, localpath)
 
-    def process_check(self, pid):
-        pid = int(pid)
-        com_str = "ps aux | awk '{print $2}' | grep %s" % pid
-        self.exec_command(com_str)
-        newpid = None
-        try:
-            newpid = int(self.out)
-        except Exception as e:
-            return False
 
-        if(pid == newpid):
-            return True
-        return False
-
-    def kill_pid(self, pid, isdis=True):
-        pid = int(pid)
-        com_str = 'kill %s' % pid
-        _print("杀死进程 %s " % pid, None, isdis and ifdebug)
-        self.exec_command(com_str)
-        time.sleep(4)
-        re = self.process_check(pid)
-        if(re == True):
-            _print("尝试第二次杀死进程 %s" % pid, None, isdis and ifdebug)
-            com_str = "kill -9 %s" % pid
-            self.exec_command(com_str)
-            time.sleep(4)
-            re = self.process_check(pid)
-            if(re):
-                _print("进程 %s 杀死失败" % pid, 'red', isdis and ifdebug)
-                return False
-        _print("进程 %s 杀死成功" % pid, 'green', isdis and ifdebug)
-        return True
 
     def close(self):
         self.sftp.close()
