@@ -1,4 +1,5 @@
 import time
+import random
 test_proxy = 10
 test_proxy_excellent = 11
 test_proxy_good = 12
@@ -8,7 +9,8 @@ test_proxy_fail = 15
 test_proxy_over_time = 17
 try_open_proxy = 16
 
-
+open_time = time.strftime('%m_%d',time.localtime(time.time()))
+logfilename = 'test_log_%s%s' % (open_time, random.randint(10,99))
 def print_red(mes):
     print("\033[31m%s\033[0m" % mes)
 
