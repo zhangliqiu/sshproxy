@@ -32,7 +32,7 @@ def _print(mes, color=None, isdis=True, mes_collent=None, showtime=True):
             print_green(mes)
     
     if(mes_collent != None):
-        test_log = open('test_log', 'a')
+        test_log = open(logfilename, 'a')
         
         now = time.time()
         if mes_collent == test_proxy_excellent:
