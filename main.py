@@ -66,7 +66,6 @@ os.system('clear')
 continous_failcount = 0
 
 while True:
-    print(client_os)
     if(client_os == 'unix'):
         client = UNIX_SSHproxy(configname)
     elif(client_os == 'win'):
@@ -77,8 +76,8 @@ while True:
         _print("主机上线", 'green')
         client.connect()
         client.my_init()
-        # print(client.is_file_exist('.ssh'))
-        # exit()
+        #调试区
+        #调试区
         while True:
             try:
                 re = client.open_proxy()

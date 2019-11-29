@@ -59,7 +59,7 @@ class ParamikoClient(object):
     def Get_ping(self):
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+        sock.settimeout(1)
         try:
             t1 = time.time()
             sock.connect((self.hostname, self.sshport))
@@ -259,7 +259,7 @@ class ParamikoClient(object):
         return filename
 
     def remote_to_absolute(self, filename):
-        
+        #print(filename)
         if(self.remote_rootdir[0] != '/'):
             if(self.remote_rootdir[1] != ':'):
                 _print('远程根目录为: %s' % self.remote_rootdir,'red')
@@ -286,7 +286,8 @@ class ParamikoClient(object):
             remotepath = self.remote_to_absolute(remotepath)
         except Exception:
             return False
-        #print("put\nlocal:%s\nremote:%s" % (localpath, remotepath))        
+        print("put\nlocal:%s\nremote:%s" % (localpath, remotepath))   
+        exit     
         if(isdis):
             self.sftp.put(localpath, remotepath, put_dis)
         else:

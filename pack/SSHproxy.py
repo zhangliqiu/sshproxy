@@ -14,7 +14,7 @@ else:
     import pack.collect as collect
 
 
-ifdebug = True
+ifdebug = False
 
 
 class SSHproxy(ParamikoClient):
@@ -35,7 +35,10 @@ class SSHproxy(ParamikoClient):
         self.remote_work_dir = ''
 
     def set_remote_work_dir(self):
-        self.remote_work_dir = self.remote_rootdir + '/' + 'sshproxy'
+        if(self.os == 'unix'):
+            self.remote_work_dir = self.remote_rootdir + '/' + 'sshproxy'
+        elif(self.os=='win'):
+            self.remote_work_dir = self.remote_rootdir + '\\' + 'sshproxy'
 
     def sftp_work_dir_check(self):
         self.open_sftp()
@@ -47,6 +50,7 @@ class SSHproxy(ParamikoClient):
 
     def my_init(self):
         self.get_remote_rootdr()
+        self.set_remote_work_dir()
 
 
 class UNIX_SSHproxy(SSHproxy):
@@ -114,11 +118,12 @@ class UNIX_SSHproxy(SSHproxy):
         _print("%s 不存在" % filename, 'red', ifdebug and isdis)
         return False
 
-    def is_work_dir_exit(self, isdis=False):
+    def is_work_dir_exist(self, isdis=False):
+        
         return self.is_file_exist(self.work_dir_name, isdis)
 
     def mk_work_dir(self, isdis=False):
-        if(self.is_work_dir_exit() == True):
+        if(self.is_work_dir_exist() == True):
 
             _print('工作文件夹已存在', None, isdis and ifdebug)
             self.exec_command('touch %s/_init' % self.work_dir_name, False)
@@ -281,6 +286,8 @@ class WIN_SSHproxy(SSHproxy):
         super(WIN_SSHproxy, self).__init__(config_str)
 
     def mkdir(self, dirname, isdis=True):
+        print("进入创建目录 %s" % dirname)
+        
         self.open_sshclient()
 
         if(self.is_file_exist(dirname)):
@@ -288,12 +295,14 @@ class WIN_SSHproxy(SSHproxy):
             return True
 
         com_str = 'md %s' % dirname
+        
+        
         self.exec_command(com_str, False)
         re = self.is_file_exist(dirname)
         if(re == True):
-            _print('%s 新建成功' % newdir)
+            _print('%s 新建成功' % dirname)
             return True
-        _print(' 新建%s失败,请查找原因' % newdir, 'red')
+        _print(' 新建%s失败,请查找原因' % dirname, 'red')
         return False
 
     def kill_pid(self, pid, isdis=True):
@@ -328,15 +337,18 @@ class WIN_SSHproxy(SSHproxy):
                 return True
         return False
 
-        
-    def is_file_exist(self, filename, isdis=False):
+    def win_basename(self,filename):
+        postion = filename.rfind('\\')
+        return filename[postion+1:]
+    def is_file_exist(self, filename, isdis=True):
         self.open_sshclient()
         
         filename = self.remote_to_absolute(filename)
-        basename = os.path.basename(filename)
+        basename = self.win_basename(filename)
         com_str = 'dir %s' % filename
-        
+        #print(com_str,'转化')
         com_str = com_str.replace("/",'\\')
+        
         self.exec_command(com_str, False)        
         strout = bytes_del_nodis(self.out).replace('\r','').strip()
         
@@ -347,25 +359,36 @@ class WIN_SSHproxy(SSHproxy):
         _print("%s 不存在" % filename, 'red', ifdebug and isdis)
         return False
 
-    def is_work_dir_exit(self, isdis=False):
-        return self.is_file_exist(self.work_dir_name, isdis)
+    def is_work_dir_exist(self, isdis=False):
+        self.set_remote_work_dir()
+        return self.is_file_exist(self.remote_work_dir, isdis)
 
-    def mk_work_dir(self, isdis=False):
-        if(self.is_work_dir_exit() == True):
+    def mk_work_dir(self, isdis=True):
+        
+        if(self.is_work_dir_exist() == True):
 
-            _print('工作文件夹已存在', None, isdis and ifdebug)
-            self.exec_command('touch %s/_init' % self.work_dir_name, False)
+            _print('工作文件夹已存在', None)
+            
+            com_str = 'echo ''> %s\_init'  % self.remote_work_dir
+            self.exec_command(com_str, False)
             return True
-        _print('创建工作文件夹', None, isdis and ifdebug)
-        re = self.mkdir(self.work_dir_name)
-        self.exec_command('touch %s/_init' % self.work_dir_name, False)
+        else:                
+            _print('创建工作文件夹', None, isdis and ifdebug)
+            re = self.mkdir(self.remote_work_dir)
+            com_str = 'echo ''> %s\_init'  % self.remote_work_dir
+            self.exec_command(com_str, False)
         return re
 
     def sftp_chang_in_work_dir(self, isdis=False):
         self.open_sftp()
-        _print('进入工作目录', None, isdis and ifdebug)
-        self.sftp_change_dir(self.remote_work_dir)
+        self.mk_work_dir()
+
+        _print('进入工作目录', None, isdis and ifdebug)    
+        print(self.remote_work_dir)
+        self.sftp_change_dir('sshproxy')
+                
         re = self.sftp_work_dir_check()
+       
         return re
 
     def up_rsa_file(self, isdis=False):
@@ -375,17 +398,22 @@ class WIN_SSHproxy(SSHproxy):
             if(self.local_rsa_file == ''):
                 _print('代理 local_rsa_file 文件未配置', 'red')
                 return False
-            if(self.sftp_chang_in_work_dir() == False):
-                _print('非sshproxy工作目录', 'red')
-                return False
+            self.sftp_chang_in_work_dir()
+            
             _print('上传 rsa 文件', None, ifdebug)
-            self.remote_rsa_file = self.remote_rootdir + '/' + \
-                self.work_dir_name + '/' + \
-                os.path.basename(self.local_rsa_file)
-            self.put(self.local_rsa_file, self.remote_rsa_file, isdis)
+            basename = os.path.basename(self.local_rsa_file)
+            self.remote_rsa_file = self.remote_work_dir + '\\'\
+                 + basename
+            
+            
+            local = self.local_rsa_file
+            remote = 'qizhang.rsa'
+            
+            self.sftp.put(local,remote)
+            #self.put(self.local_rsa_file, None, isdis)
             re = self.is_file_exist(self.remote_rsa_file)
             if(re == True):
-                self.sftp.chmod(self.remote_rsa_file, 0o600)
+                self.sftp.chmod(basename, 0o600)
                 return True
         return False
 
@@ -398,7 +426,7 @@ class WIN_SSHproxy(SSHproxy):
         self.exec_command(com_str, ifdebug, 4)
         newtime = time.time()
         if self.out != None:
-            htmllen = len(self.out)
+            htmllen = len(self.out)            
         else:
             htmllen = 0
         time_cose = newtime-oldtime
@@ -428,12 +456,14 @@ class WIN_SSHproxy(SSHproxy):
     def get_proxy_pid(self, isdis=False):
         self.open_sshclient()
         _print('获取pid', None, ifdebug and isdis)
-        com_str = "lsof -i:%s | grep -i LISTEN | awk '{print $2}'" % self.socks_port
+        com_str = "netstat -ano | findstr %s | findstr LISTENING" % self.socks_port
         self.exec_command(com_str, isdis)
-        strpid = self.out.decode()
-        strpid = get_line(strpid, 0, 1)
+        
+        strpid = self.out.decode().replace('\r','')
         pid = 0
         try:
+            strpid = col_of_strs(strpid,5)
+            strpid = strpid[0]
             pid = int(strpid)
         except Exception:
             pass
@@ -445,8 +475,7 @@ class WIN_SSHproxy(SSHproxy):
     def check_remote_rsa(self):
         self.open_sshclient()
         basename = os.path.basename(self.local_rsa_file)
-        remote_rsa_filename = self.remote_rootdir + \
-            '/' + self.remote_work_dir + '/' + basename
+        remote_rsa_filename = self.remote_work_dir + '\\' + basename
         if self.is_file_exist(remote_rsa_filename):
             return remote_rsa_filename
         return None
@@ -465,26 +494,14 @@ class WIN_SSHproxy(SSHproxy):
         username = self.proxy_server_user
         hostname = self.proxy_server_ip
 
-        com_str = 'ssh -D%s -i %s -fNg -p%s %s@%s' % (
+        com_str = ' ssh -o StrictHostKeyChecking=no -D%s -i %s -Ng -p%s %s@%s ' % (
             sock_port, rsa_file, ssh_port, username, hostname)
-
-        self.shell_run(com_str, 5)
+        
+        
         _print("尝试打开代理进程", None, True, collect.try_open_proxy)
-        if(self.is_first_connect_proxy_server(self.out)):
-            _print('首次连接代理服务器')
-            self.shell_run('yes')
-
-    def is_first_connect_proxy_server(self, out):
-        strout = ''
-        keys = ('to continue connecting', 'yes/no')
-        try:
-            strout = self.out.decode().lower()
-        except Exception:
-            pass
-        for key in keys:
-            if(strout.find(key) < 0):
-                return False
-        return True
+        self.exec_command(com_str,2)
+        #print(self.out.__str__())
+        
 
     def open_proxy(self):
         re = self.proxy_check()
@@ -507,3 +524,17 @@ class WIN_SSHproxy(SSHproxy):
                 self._open_proxy()
                 re = self.proxy_check()
         return re
+
+    def is_first_connect_proxy_server(self, out):
+        strout = ''
+        print(out)
+        exit()
+        keys = ('to continue connecting', 'yes/no')
+        try:
+            strout = self.out.decode().lower()
+        except Exception:
+            pass
+        for key in keys:
+            if(strout.find(key) < 0):
+                return False
+        return True
