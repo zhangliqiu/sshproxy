@@ -8,8 +8,9 @@ test_proxy_poor = 14
 test_proxy_fail = 15
 test_proxy_over_time = 17
 try_open_proxy = 16
+testlog_label = 19
 
-open_time = time.strftime('%m_%d',time.localtime(time.time()))
+open_time = time.strftime('%m%d%S',time.localtime(time.time()))
 logfilename = 'test_log_%s%s' % (open_time, random.randint(10,99))
 def print_red(mes):
     print("\033[31m%s\033[0m" % mes)
@@ -47,7 +48,8 @@ def _print(mes, color=None, isdis=True, mes_collent=None, showtime=True):
             test_log.write("%f %s\n" % (now, mes))
         elif mes_collent == test_proxy_over_time:
             test_log.write("%f %s\n" % (now, mes))     
-        
+        elif mes_collent == testlog_label:
+            test_log.write(mes)
         
         test_log.close()
 

@@ -8,3 +8,4 @@ test_proxy_fail = 15
 test_proxy_over_time = 17
 
 try_open_proxy = 16
+testlog_label = 19

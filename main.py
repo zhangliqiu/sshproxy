@@ -33,6 +33,7 @@ rsa_file = toabs_path(argv[2])
 # exit()
 config = configparser.ConfigParser()
 config.read(configname)
+
 try:
     check_alive_cycle = int(config.get('config', 'check_alive_cycle'))
     open_proxy_cycle_base = int(config.get('config', 'open_proxy_cycle_base'))
@@ -41,6 +42,9 @@ try:
     open_proxy_fail_cycle = int(config.get('config', 'open_proxy_fail_cycle'))
     open_proxy_fail_time = int(config.get('config', 'open_proxy_fail_time'))
     client_os = config.get('user','os')
+    client_host = config.get('user','host')
+    client_port = config.get('user','port')
+    
 except Exception as e:
     _print("配置文件不完整,或者格式错误%s" % e, 'red')
     exit()
@@ -61,8 +65,10 @@ _print(mes, 'green', True, None, False)
 _print('\n\n特别提醒,本程序用到第外部库为 paramiko\n可以使用 \npip3 install paramiko\n失败多试几次再百度',
        'red', True, None, False)
 time.sleep(1)
-os.system('clear')
+#os.system('clear')
 
+baji = "%s:%s" % (client_host,client_port)
+_print("这是对靶机%s 的维护" % baji,None,False,collect.test_proxy_normal,False)
 continous_failcount = 0
 
 while True:
@@ -93,6 +99,8 @@ while True:
                         exit()
                     next_open_time = open_proxy_fail_cycle
             except paramiko.ssh_exception.SSHException:
+                break
+            except OSError:
                 break
             _print("%s 秒后再次维护代理" % next_open_time)
             time.sleep(next_open_time)

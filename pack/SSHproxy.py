@@ -91,7 +91,7 @@ class UNIX_SSHproxy(SSHproxy):
                 return False
         _print("进程 %s 杀死成功" % pid, 'green', isdis and ifdebug)
         return True
-
+    
     def process_check(self, pid):
         pid = int(pid)
         com_str = "ps aux | awk '{print $2}' | grep %s" % pid
@@ -105,9 +105,10 @@ class UNIX_SSHproxy(SSHproxy):
         if(pid == newpid):
             return True
         return False
-
+        self.my_init()
     def is_file_exist(self, filename, isdis=False):
         self.open_sshclient()
+        #print('*****%s' % filename)
         filename = self.remote_to_absolute(filename)
         com_str = 'ls %s > /dev/null 2>&1;echo $?' % filename
         self.exec_command(com_str, False)
@@ -120,21 +121,23 @@ class UNIX_SSHproxy(SSHproxy):
 
     def is_work_dir_exist(self, isdis=False):
         
-        return self.is_file_exist(self.work_dir_name, isdis)
+        return self.is_file_exist(self.remote_work_dir, isdis)
 
     def mk_work_dir(self, isdis=False):
         if(self.is_work_dir_exist() == True):
 
             _print('工作文件夹已存在', None, isdis and ifdebug)
-            self.exec_command('touch %s/_init' % self.work_dir_name, False)
+            self.exec_command('touch %s/_init' % self.remote_work_dir, False)
             return True
+
         _print('创建工作文件夹', None, isdis and ifdebug)
-        re = self.mkdir(self.work_dir_name)
-        self.exec_command('touch %s/_init' % self.work_dir_name, False)
+        re = self.mkdir(self.remote_work_dir)
+        self.exec_command('touch %s/_init' % self.remote_work_dir, False)
         return re
 
     def sftp_chang_in_work_dir(self, isdis=False):
         self.open_sftp()
+        self.mk_work_dir()
         _print('进入工作目录', None, isdis and ifdebug)
         self.sftp_change_dir(self.remote_work_dir)
         re = self.sftp_work_dir_check()
@@ -142,18 +145,20 @@ class UNIX_SSHproxy(SSHproxy):
 
     def up_rsa_file(self, isdis=False):
 
-        re = self.open_sftp()
+        self.remote_rsa_file = self.remote_work_dir + '/' + \
+            os.path.basename(self.local_rsa_file)
+        re = self.is_file_exist(self.remote_rsa_file)
+        if(re == True):
+            return True
+
+        re = self.open_sftp()        
         if(re == True):
             if(self.local_rsa_file == ''):
                 _print('代理 local_rsa_file 文件未配置', 'red')
                 return False
-            if(self.sftp_chang_in_work_dir() == False):
-                _print('非sshproxy工作目录', 'red')
-                return False
+            self.sftp_chang_in_work_dir()
+
             _print('上传 rsa 文件', None, ifdebug)
-            self.remote_rsa_file = self.remote_rootdir + '/' + \
-                self.work_dir_name + '/' + \
-                os.path.basename(self.local_rsa_file)
             self.put(self.local_rsa_file, self.remote_rsa_file, isdis)
             re = self.is_file_exist(self.remote_rsa_file)
             if(re == True):
@@ -203,10 +208,11 @@ class UNIX_SSHproxy(SSHproxy):
         com_str = "lsof -i:%s | grep -i LISTEN | awk '{print $2}'" % self.socks_port
         self.exec_command(com_str, isdis)
         strpid = self.out.decode()
+        #print(strpid)
         strpid = get_line(strpid, 0, 1)
         pid = 0
         try:
-            pid = int(strpid)
+            pid = int(strpid[0])
         except Exception:
             pass
         if(pid == 0):
@@ -217,8 +223,7 @@ class UNIX_SSHproxy(SSHproxy):
     def check_remote_rsa(self):
         self.open_sshclient()
         basename = os.path.basename(self.local_rsa_file)
-        remote_rsa_filename = self.remote_rootdir + \
-            '/' + self.remote_work_dir + '/' + basename
+        remote_rsa_filename = self.remote_work_dir + '/' + basename
         if self.is_file_exist(remote_rsa_filename):
             return remote_rsa_filename
         return None
@@ -237,7 +242,7 @@ class UNIX_SSHproxy(SSHproxy):
         username = self.proxy_server_user
         hostname = self.proxy_server_ip
 
-        com_str = 'ssh -D%s -i %s -fNg -p%s %s@%s' % (
+        com_str = 'ssh -o StrictHostKeyChecking=no -D%s -i %s -fNg -p%s %s@%s' % (
             sock_port, rsa_file, ssh_port, username, hostname)
 
         self.shell_run(com_str, 5)
@@ -499,7 +504,7 @@ class WIN_SSHproxy(SSHproxy):
         
         
         _print("尝试打开代理进程", None, True, collect.try_open_proxy)
-        self.exec_command(com_str,2)
+        self.exec_command(com_str,False)
         #print(self.out.__str__())
         
 
@@ -527,8 +532,7 @@ class WIN_SSHproxy(SSHproxy):
 
     def is_first_connect_proxy_server(self, out):
         strout = ''
-        print(out)
-        exit()
+        
         keys = ('to continue connecting', 'yes/no')
         try:
             strout = self.out.decode().lower()

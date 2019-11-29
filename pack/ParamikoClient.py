@@ -74,7 +74,8 @@ class ParamikoClient(object):
             self.alive = True
             self.permit_connect = False
             _print("连接被拒绝", 'red')
-
+        except Exception:
+            pass
         return self.ping
 
     def connect(self):
@@ -260,6 +261,7 @@ class ParamikoClient(object):
 
     def remote_to_absolute(self, filename):
         #print(filename)
+        
         if(self.remote_rootdir[0] != '/'):
             if(self.remote_rootdir[1] != ':'):
                 _print('远程根目录为: %s' % self.remote_rootdir,'red')
@@ -277,7 +279,7 @@ class ParamikoClient(object):
 
     def put(self, localpath, remotepath=None, isdis=True):
         self.open_sftp()
-
+        #print("%s  %s" % (localpath, remotepath))
         localpath = self.local_to_absolute(localpath)
         if(remotepath == None):
             remotepath = os.path.basename(localpath)
@@ -286,8 +288,7 @@ class ParamikoClient(object):
             remotepath = self.remote_to_absolute(remotepath)
         except Exception:
             return False
-        print("put\nlocal:%s\nremote:%s" % (localpath, remotepath))   
-        exit     
+        #print("put\nlocal:%s\nremote:%s" % (localpath, remotepath)) 
         if(isdis):
             self.sftp.put(localpath, remotepath, put_dis)
         else:
