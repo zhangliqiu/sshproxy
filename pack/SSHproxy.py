@@ -368,11 +368,11 @@ class WIN_SSHproxy(SSHproxy):
         self.set_remote_work_dir()
         return self.is_file_exist(self.remote_work_dir, isdis)
 
-    def mk_work_dir(self, isdis=True):
+    def mk_work_dir(self, isdis=False):
         
         if(self.is_work_dir_exist() == True):
 
-            _print('工作文件夹已存在', None)
+            _print('工作文件夹已存在', None,isdis)
             
             com_str = 'echo ''> %s\_init'  % self.remote_work_dir
             self.exec_command(com_str, False)
@@ -389,7 +389,7 @@ class WIN_SSHproxy(SSHproxy):
         self.mk_work_dir()
 
         _print('进入工作目录', None, isdis and ifdebug)    
-        print(self.remote_work_dir)
+        #print(self.remote_work_dir)
         self.sftp_change_dir('sshproxy')
                 
         re = self.sftp_work_dir_check()
@@ -412,7 +412,7 @@ class WIN_SSHproxy(SSHproxy):
             
             
             local = self.local_rsa_file
-            remote = 'qizhang.rsa'
+            remote = os.path.basename(local)
             
             self.sftp.put(local,remote)
             #self.put(self.local_rsa_file, None, isdis)
