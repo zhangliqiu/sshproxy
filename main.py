@@ -114,7 +114,7 @@ while True:
                     next_open_time = open_proxy_fail_cycle
             except paramiko.ssh_exception.SSHException:
                 break
-            except OSError:
+            except Exception:
                 break
             _print("%s 秒后再次维护代理" % next_open_time)
             time.sleep(next_open_time)
