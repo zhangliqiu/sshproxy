@@ -246,7 +246,7 @@ class UNIX_SSHproxy(SSHproxy):
             sock_port, rsa_file, ssh_port, username, hostname)
 
         self.shell_run(com_str, 5)
-        _print("尝试打开代理进程", None, True, collect.try_open_proxy)
+        _print("尝试打开代理进程", None, True)
         if(self.is_first_connect_proxy_server(self.out)):
             _print('首次连接代理服务器')
             self.shell_run('yes')

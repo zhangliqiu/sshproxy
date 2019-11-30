@@ -6,7 +6,8 @@ import sys
 import time
 import configparser
 import random
-from pack.SSHproxy import UNIX_SSHproxy,WIN_SSHproxy
+import datetime
+from pack.SSHproxy import UNIX_SSHproxy, WIN_SSHproxy
 from pack._print import _print
 # 数据收集
 import pack.collect as collect
@@ -14,10 +15,13 @@ import pack.collect as collect
 basedir = os.getcwd()
 
 basename = os.path.basename(__file__)
+
+
 def toabs_path(filename):
     if (filename[0] != '/'):
         filename = basedir + '/' + filename
     return filename
+
 
 __author__ = 'likeliekkas'
 __telegram__ = '+1 626 346 7918'
@@ -41,10 +45,11 @@ try:
         'config', 'open_proxy_cycle_range'))
     open_proxy_fail_cycle = int(config.get('config', 'open_proxy_fail_cycle'))
     open_proxy_fail_time = int(config.get('config', 'open_proxy_fail_time'))
-    client_os = config.get('user','os')
-    client_host = config.get('user','host')
-    client_port = config.get('user','port')
-    
+    client_os = config.get('user', 'os')
+    client_host = config.get('user', 'host')
+    client_port = config.get('user', 'port')
+    client_user = config.get('user', 'username')
+    server_ip = config.get('server', 'host')
 except Exception as e:
     _print("配置文件不完整,或者格式错误%s" % e, 'red')
     exit()
@@ -65,12 +70,19 @@ _print(mes, 'green', True, None, False)
 _print('\n\n特别提醒,本程序用到第外部库为 paramiko\n可以使用 \npip3 install paramiko\n失败多试几次再百度',
        'red', True, None, False)
 time.sleep(4)
-#os.system('clear')
+os.system('clear')
 
-baji = "%s:%s" % (client_host,client_port)
-_print("这是对靶机%s 的维护" % baji,None,False,collect.test_proxy_normal,False)
+
+now = datetime.datetime.now()
+
+format_now = now.strftime('%m%d')
+
+test_log_file_name =format_now + 'log' + '_' + '%s' % client_user + '_' + server_ip + '_' + str(random.randint(10,99))
+
+
+mes = ''
+_print(mes, None, False, collect.test_proxy_normal, False, test_log_file_name)
 continous_failcount = 0
-
 while True:
     if(client_os == 'unix'):
         client = UNIX_SSHproxy(configname)
@@ -82,8 +94,8 @@ while True:
         _print("主机上线", 'green')
         client.connect()
         client.my_init()
-        #调试区
-        #调试区
+        # 调试区
+        # 调试区
         while True:
             try:
                 re = client.open_proxy()
@@ -95,7 +107,8 @@ while True:
                     continous_failcount += 1
                     _print('连续第 %s 次维护代理失败' % continous_failcount, 'red')
                     if (continous_failcount == open_proxy_fail_time):
-                        _print('达到连续维护失败次数,程序退出,可以联系作者以讨论问题', 'red',True,collect.test_proxy_over_time)
+                        _print('达到连续维护失败次数,程序退出,可以联系作者以讨论问题', 'red',
+                               True, collect.test_proxy_over_time)
                         exit()
                     next_open_time = open_proxy_fail_cycle
             except paramiko.ssh_exception.SSHException:
