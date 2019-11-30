@@ -64,7 +64,7 @@ _print(mes, 'green', True, None, False)
 
 _print('\n\n特别提醒,本程序用到第外部库为 paramiko\n可以使用 \npip3 install paramiko\n失败多试几次再百度',
        'red', True, None, False)
-time.sleep(1)
+time.sleep(4)
 #os.system('clear')
 
 baji = "%s:%s" % (client_host,client_port)
