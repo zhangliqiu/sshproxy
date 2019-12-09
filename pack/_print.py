@@ -45,6 +45,8 @@ def _print(mes, color=None, isdis=True, mes_collent=None, showtime=True, logname
     if(mes_collent == None):
         return
     else:
+        if(True):
+            return
         if(test_log_name == 'log_init'):
             test_log_name = logname
 
